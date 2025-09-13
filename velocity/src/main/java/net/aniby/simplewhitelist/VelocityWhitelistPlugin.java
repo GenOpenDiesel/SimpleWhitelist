@@ -51,8 +51,7 @@ public class VelocityWhitelistPlugin implements WhitelistPlugin {
         );
 
         CommandManager commandManager = this.proxy.getCommandManager();
-        CommandMeta commandMeta = commandManager.metaBuilder("simplewhitelist")
-                .aliases("simplewl", "swl")
+        CommandMeta commandMeta = commandManager.metaBuilder("whitelist")
                 .plugin(this)
                 .build();
         commandManager.register(commandMeta, new BrigadierCommand(
