@@ -1,48 +1,62 @@
 package net.aniby.simplewhitelist;
 
-import net.aniby.simplewhitelist.api.WhitelistPlugin;
-import net.aniby.simplewhitelist.configuration.WhitelistConfiguration;
-import net.kyori.adventure.text.serializer.bungeecord.BungeeComponentSerializer;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.event.PreLoginEvent;
-import net.md_5.bungee.api.plugin.Listener;
-import net.md_5.bungee.api.plugin.Plugin;
-import net.md_5.bungee.event.EventHandler;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import net.aniby.simplewhitelist.command.WhitelistCommand;
+import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.plugin.Command;
+import net.md_5.bungee.api.plugin.TabExecutor;
 
-import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
-public final class BungeeWhitelistPlugin extends Plugin implements Listener, WhitelistPlugin {
-    private WhitelistConfiguration configuration;
+public class BungeeWhitelistCommand extends Command implements TabExecutor {
+    private final CommandDispatcher<CommandSender> dispatcher;
+    private final BungeeWhitelistPlugin plugin;
 
-    @Override
-    public WhitelistConfiguration getConfiguration() {
-        return this.configuration;
+    protected BungeeWhitelistCommand(BungeeWhitelistPlugin plugin) {
+        super("whitelist", WhitelistCommand.PERMISSION);
+        this.plugin = plugin;
+        this.dispatcher = new CommandDispatcher<>();
+        this.dispatcher.register(new WhitelistCommand<>(
+                new BungeeCommandSourceExecutor(), this.plugin
+        ).builder());
     }
 
     @Override
-    public void onEnable() {
-        Path path = this.getDataFolder().toPath();
-
-        this.configuration = new WhitelistConfiguration(
-                path.resolve("config.yml"),
-                path.resolve("whitelist.txt")
-        );
-
-
-        this.getProxy().getPluginManager().registerListener(this, this);
-        this.getProxy().getPluginManager().registerCommand(this,
-                new BungeeWhitelistCommand(this)
-        );
-    }
-
-    @EventHandler(priority = 5)
-    public void onLogin(PreLoginEvent event) {
-        if (this.configuration.getSettings().isEnabled()
-                && !this.configuration.getWhitelist().contains(event.getConnection().getName())) {
-            event.setReason(new ComponentBuilder().append(BungeeComponentSerializer.get().serialize(
-                    this.configuration.getMessage("notInWhitelist")
-            )).build());
-            event.setCancelled(true);
+    public void execute(CommandSender sender, String[] args) {
+        String input = ("whitelist " + String.join(" ", args)).trim();
+        try {
+            this.dispatcher.execute(input, sender);
+        } catch (CommandSyntaxException e) {
+            throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public Iterable<String> onTabComplete(CommandSender sender, String[] args) {
+        List<String> list = new ArrayList<>();
+        switch (args.length) {
+            case 0:
+            case 1: {
+                list = this.plugin.getConfiguration().getSettings().getCommandMessages()
+                        .keySet().stream().filter(
+                                n -> args.length == 0 || n.startsWith(args[0])
+                        ).collect(Collectors.toList());
+                break;
+            }
+            case 2: {
+                if (args[0].equals("remove")) {
+                    list = this.plugin.getConfiguration().getWhitelist().getSet()
+                            .stream().filter(
+                                    c -> args[1].isEmpty() || c.startsWith(args[1].toLowerCase())
+                            )
+                            .collect(Collectors.toList());
+                }
+                break;
+            }
+        }
+        return list;
     }
 }
