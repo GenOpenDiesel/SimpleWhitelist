@@ -37,7 +37,7 @@ public class WhitelistCommand<S> {
     }
 
     public LiteralArgumentBuilder<S> builder() {
-        return this.commands.literal("simplewhitelist")
+        return this.commands.literal("whitelist")
                 .requires(source -> this.executor.hasPermission(source, PERMISSION))
                 .then(this.commands.literal("add")
                         .then(this.commands.argument("name", StringArgumentType.word())
@@ -46,24 +46,16 @@ public class WhitelistCommand<S> {
                         .then(this.commands.argument("name", StringArgumentType.word())
                                 .executes(this::remove)))
                 .then(this.commands.literal("list").executes(this::list))
-                .then(this.commands.literal("enable").executes(this::enable))
-                .then(this.commands.literal("disable").executes(this::disable))
+                .then(this.commands.literal("on").executes(this::enable))
+                .then(this.commands.literal("off").executes(this::disable))
                 .then(this.commands.literal("reload").executes(this::reload))
                 .then(this.commands.literal("help").executes(this::help))
                 .executes(this::help);
     }
 
     public void register(CommandDispatcher<S> dispatcher) {
-        Commands<S> commands = new Commands<>();
         var builder = this.builder();
-        LiteralCommandNode<S> command = dispatcher.register(builder);
-
-        List.of("swl", "simplewl").forEach(c ->
-                dispatcher.register(
-                        commands.literal(c)
-                                .requires(source -> this.executor.hasPermission(source, PERMISSION))
-                                .redirect(command))
-        );
+        dispatcher.register(builder);
     }
 
     private int add(CommandContext<S> context) {
