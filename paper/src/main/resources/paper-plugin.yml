@@ -7,5 +7,5 @@ api-version: ${minecraft_version}
 load: STARTUP
 description: Simple whitelist system for your server
 website: https://modrinth.com/plugin/simplewhitelist
-authors: ["An1by"]
+authors: [genallthebest]
 folia-supported: true
